@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ipê">
+<meta name="theme-color" content="#0b0f17">
+<title>Ipê — Meu Patrimônio</title>
+<link rel="apple-touch-icon" id="ati">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0b0f17;--card:#141a26;--b:#222b3b;--t:#e8ecf3;--m:#8a94a8;--a:#d4a73a;--g:#3ccf91;--r:#ff6b6b}
+.light{--bg:#f3f5f9;--card:#fff;--b:#e1e5ec;--t:#141a26;--m:#667085;--a:#b8860b}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--t);padding:calc(env(safe-area-inset-top) + 8px) 14px calc(env(safe-area-inset-bottom) + 84px)}
+header{display:flex;justify-content:space-between;align-items:center;margin:6px 0 14px}
+h1{font-size:20px}h1 span{color:var(--a)}h2{font-size:16px;margin:18px 0 8px}
+.card{background:var(--card);border:1px solid var(--b);border-radius:16px;padding:14px;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid .card{margin:0}
+.lbl{font-size:12px;color:var(--m)}.val{font-size:19px;font-weight:700;margin-top:4px}
+.big{font-size:30px;color:var(--a)}.pos{color:var(--g)}.neg{color:var(--r)}.sm{font-size:12px;color:var(--m)}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--b);display:flex;overflow-x:auto;padding:6px 4px calc(env(safe-area-inset-bottom) + 6px);z-index:9}
+nav button{flex:1 0 auto;background:none;border:0;color:var(--m);font-size:11px;padding:6px 9px;border-radius:10px}
+nav button.on{color:var(--a);background:rgba(212,167,58,.12)}
+.btn{background:var(--a);color:#111;border:0;border-radius:12px;padding:11px 14px;font-weight:600;font-size:14px}
+.btn2{background:none;border:1px solid var(--b);color:var(--t);border-radius:10px;padding:7px 10px;font-size:13px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b);gap:8px}
+.row:last-child{border:0}
+input,select,textarea{width:100%;background:var(--bg);color:var(--t);border:1px solid var(--b);border-radius:10px;padding:10px;font-size:16px;margin:4px 0 10px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;z-index:20}
+.modal.on{display:flex}.sheet{background:var(--card);width:100%;max-height:88vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(env(safe-area-inset-bottom) + 18px)}
+.months{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.mo{background:var(--card);border:1px solid var(--b);border-radius:12px;padding:12px 4px;text-align:center;font-size:13px}
+.mo.has{border-color:var(--a);color:var(--a)}
+.bar{height:6px;background:var(--b);border-radius:3px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--a)}
+.warn{font-size:12px;color:var(--m);border-left:3px solid var(--a);padding-left:8px;margin:8px 0}
+canvas{max-height:260px}
+</style>
+</head>
+<body>
+<header><h1><span>Ipê</span> · Meu Patrimônio</h1><button class="btn2" onclick="tg()">◐</button></header>
+<main id="app"></main>
+<nav id="nav"></nav>
+<div class="modal" id="md" onclick="if(event.target==this)cm()"><div class="sheet" id="sh"></div></div>
+<script>
+// ===== ÍCONE (gerado em PNG) =====
+(()=>{const c=document.createElement('canvas');c.width=c.height=180;const x=c.getContext('2d');
+const g=x.createLinearGradient(0,0,180,180);g.addColorStop(0,'#141a26');g.addColorStop(1,'#0b0f17');x.fillStyle=g;x.fillRect(0,0,180,180);
+x.strokeStyle='#3ccf91';x.lineWidth=7;x.lineCap='round';x.beginPath();x.moveTo(30,140);x.lineTo(70,110);x.lineTo(100,122);x.lineTo(150,60);x.stroke();
+x.fillStyle='#d4a73a';x.font='bold 96px -apple-system,Helvetica';x.textAlign='center';x.fillText('I',90,108);
+document.getElementById('ati').href=c.toDataURL('image/png');})();
+
+// ===== ESTADO =====
+const K='ipe_v1',T=new Date().toISOString().slice(0,10),D0='2026-11-01';
+const def={rate:5.857,theme:'dark',meta:4000,cons:1541,
+groups:['PGBL','IPCA+','Pós-fixado','FIIs','Outros'],
+tg:{PGBL:40,'IPCA+':25,'Pós-fixado':20,FIIs:10,Outros:5},
+cats:[['PGBL / Previdência','PGBL'],['Tesouro IPCA+','IPCA+'],['Tesouro Selic','Pós-fixado'],['Tesouro Prefixado','Outros'],['CDB','Pós-fixado'],['LCI / LCA','Pós-fixado'],['Fundo RF Pós-fixado','Pós-fixado'],['Fundo Crédito Privado','Pós-fixado'],['FIIs','FIIs'],['Outros','Outros']],
+assets:[['Sparta Prev Advisory XP','PGBL / Previdência',83410],['Bradesco ZUPO RF','Fundo RF Pós-fixado',20809.28],['KDIF11','FIIs',7096.32],['Tesouro IPCA+ mai/2032','Tesouro IPCA+',5535.75],['Tesouro IPCA+ ago/2030','Tesouro IPCA+',4611.27],['XP Liquidez RF','Fundo RF Pós-fixado',2181.78]].map((a,i)=>({id:'a'+i,n:a[0],cat:a[1],ini:a[2],inst:'',taxa:'',cotas:'',obs:''})),
+movs:[],usd:{ini:9228.48,rIni:5.857,h:[],f:[]},closes:{},sc:{c:8,m:10,o:12},mkt:{}};
+let S=Object.assign(structuredClone(def),JSON.parse(localStorage.getItem(K)||'{}'));
+const sv=()=>localStorage.setItem(K,JSON.stringify(S));
+const R=v=>(+v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const U=v=>(+v||0).toLocaleString('en-US',{style:'currency',currency:'USD'});
+const P=v=>(isFinite(v)?v:0).toLocaleString('pt-BR',{maximumFractionDigits:2})+'%';
+const cls=v=>v>=0?'pos':'neg',$=id=>document.getElementById(id);
+const grp=c=>(S.cats.find(x=>x[0]==c)||[,'Outros'])[1];
+
+// ===== CÁLCULOS =====
+function bal(a,until='9999'){let b=a.ini;S.movs.forEach(m=>{if(m.d>until)return;
+ if(m.a==a.id)b+=m.t=='res'||m.t=='tr'?-m.v:m.v;if(m.t=='tr'&&m.to==a.id)b+=m.v});return b}
+function flow(a){let f=0;S.movs.forEach(m=>{if(m.a==a.id){if(m.t=='ap')f+=m.v;if(m.t=='res'||m.t=='tr')f-=m.v}if(m.t=='tr'&&m.to==a.id)f+=m.v});return f}
+function gain(a){return S.movs.filter(m=>m.a==a.id&&m.t=='rd').reduce((s,m)=>s+m.v,0)}
+const ret=a=>{const b=a.ini+Math.max(flow(a),0);return b?gain(a)/b*100:0};
+const totBR=()=>S.assets.reduce((s,a)=>s+bal(a),0);
+const usdBal=()=>S.usd.h.length?S.usd.h.at(-1).usd:S.usd.ini;
+const usdFlow=()=>S.usd.f.reduce((s,f)=>s+f.v,0);
+const byG=()=>{const o={};S.groups.forEach(g=>o[g]=0);S.assets.forEach(a=>{const g=grp(a.cat);o[g]=(o[g]||0)+bal(a)});return o};
+const ytd=()=>S.movs.filter(m=>m.t=='ap'&&m.d.slice(0,4)==T.slice(0,4)).reduce((s,m)=>s+m.v,0);
+const mtd=()=>S.movs.filter(m=>m.t=='ap'&&m.d.slice(0,7)==T.slice(0,7)).reduce((s,m)=>s+m.v,0);
+function series(list){const ds=[...new Set([D0,...S.movs.map(m=>m.d)])].sort();
+ return{l:ds,v:ds.map(d=>list.reduce((s,a)=>s+bal(a,d),0)),
+ inv:ds.map(d=>list.reduce((s,a)=>s+a.ini+S.movs.filter(m=>m.d<=d).reduce((x,m)=>{if(m.a==a.id&&m.t=='ap')x+=m.v;if(m.a==a.id&&(m.t=='res'||m.t=='tr'))x-=m.v;if(m.t=='tr'&&m.to==a.id)x+=m.v;return x},0),0))}}
+
+// ===== GRÁFICOS =====
+const CH={},COL=['#d4a73a','#3ccf91','#5b8def','#c77dff','#ff8c61','#4dd4e0','#ff6b9a'];
+function mk(id,type,labels,ds,o={}){CH[id]?.destroy();const el=$(id);if(!el)return;
+ const tc=getComputedStyle(document.body).getPropertyValue('--m');
+ CH[id]=new Chart(el,{type,data:{labels,datasets:ds},options:Object.assign({responsive:true,plugins:{legend:{labels:{color:tc,boxWidth:10,font:{size:11}}}},
+ scales:type=='doughnut'?{}:{x:{ticks:{color:tc,maxTicksLimit:5}},y:{ticks:{color:tc,maxTicksLimit:5}}}},o)})}
+const dn=(id,o)=>mk(id,'doughnut',Object.keys(o),[{data:Object.values(o),backgroundColor:COL,borderWidth:0}],{cutout:'65%'});
+const ln=(id,s)=>mk(id,'line',s.l,[{label:'Patrimônio',data:s.v,borderColor:'#d4a73a',tension:.3,pointRadius:2},{label:'Valor aportado',data:s.inv,borderColor:'#5b8def',borderDash:[5,4],pointRadius:0}]);
+
+// ===== MERCADO (fontes públicas) =====
+async function mkt(){try{const r=await(await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL')).json();
+ S.rate=+r.USDBRL.bid;S.mkt.rd=new Date().toLocaleString('pt-BR');S.mkt.rs='AwesomeAPI (PTAX/mercado)'}catch(e){S.mkt.re='Falha ao buscar cotação. Use o valor manual.'}
+ try{const c=await(await fetch('https://api.bcb.gov.br/dados/serie/bcdata.sgs.4189/dados/ultimos/1?formato=json')).json();S.mkt.selic=+c[0].valor;
+ const i=await(await fetch('https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/12?formato=json')).json();
+ S.mkt.ipca12=(i.reduce((p,x)=>p*(1+x.valor/100),1)-1)*100;S.mkt.ipcaM=i;
+ const d=await(await fetch('https://api.bcb.gov.br/dados/serie/bcdata.sgs.4391/dados/ultimos/12?formato=json')).json();
+ S.mkt.cdi12=(d.reduce((p,x)=>p*(1+x.valor/100),1)-1)*100;S.mkt.cdiM=d}catch(e){S.mkt.be='Banco Central indisponível agora.'}
+ sv();go(tab)}
+
+// ===== TELAS =====
+const TABS={dash:'Dashboard',rf:'Renda fixa',inv:'Investimentos',cal:'Calendário',eua:'EUA',meta:'Metas',ind:'Indicadores'};
+let tab='dash';
+$('nav').innerHTML=Object.entries(TABS).map(([k,v])=>`<button id="n_${k}" onclick="go('${k}')">${v}</button>`).join('');
+function go(t){tab=t;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.id=='n_'+t));$('app').innerHTML=V[t]();A[t]?.();scrollTo(0,0)}
+const V={},A={};
+
+V.dash=()=>{const br=totBR(),us=usdBal()*S.rate,g=byG(),rf=br-(g.FIIs||0),gn=S.assets.reduce((s,a)=>s+gain(a),0);
+return`<div class="card"><div class="lbl">Patrimônio total (BRL)</div><div class="val big">${R(br+us)}</div>
+<div class="sm">USD/BRL ${S.rate.toFixed(4)} ${S.mkt.rd?'· '+S.mkt.rd:'· referência'}</div></div>
+<div class="grid">
+<div class="card"><div class="lbl">Brasil</div><div class="val">${R(br)}</div></div>
+<div class="card"><div class="lbl">EUA em R$</div><div class="val">${R(us)}</div><div class="sm">${U(usdBal())}</div></div>
+<div class="card"><div class="lbl">RF + Previdência</div><div class="val">${R(rf)}</div></div>
+<div class="card"><div class="lbl">Aportes no ano</div><div class="val">${R(ytd())}</div></div>
+<div class="card"><div class="lbl">Rendimento registrado</div><div class="val ${cls(gn)}">${R(gn)}</div></div>
+<div class="card"><div class="lbl">Consórcio (compromisso)</div><div class="val neg">${R(S.cons)}/mês</div><div class="sm">Fora do patrimônio</div></div>
+</div>
+<div class="card"><div class="lbl">Meta de aporte mensal</div><div class="val">${R(mtd())} / ${R(S.meta)}</div>
+<div class="bar"><i style="width:${Math.min(mtd()/S.meta*100,100)}%"></i></div><div class="sm">Faltam ${R(Math.max(S.meta-mtd(),0))}</div></div>
+<div class="card"><div class="lbl">Evolução (aporte × valorização)</div><canvas id="c1"></canvas></div>
+<div class="card"><div class="lbl">Alocação atual</div><canvas id="c2"></canvas></div>
+<button class="btn" style="width:100%" onclick="fMov()">+ Novo aporte / movimentação</button>`};
+A.dash=()=>{ln('c1',series(S.assets));dn('c2',byG())};
+
+V.rf=()=>{const g=byG();return`<h2>Por categoria</h2>`+S.groups.map(k=>{const l=S.assets.filter(a=>grp(a.cat)==k);if(!l.length)return'';
+return`<div class="card"><div class="row"><b>${k}</b><b>${R(g[k])}</b></div>${l.map(a=>`<div class="row" onclick="det('${a.id}')"><div>${a.n}<div class="sm">${a.cat}</div></div><div style="text-align:right">${R(bal(a))}<div class="sm ${cls(gain(a))}">${P(ret(a))}</div></div></div>`).join('')}</div>`}).join('')+
+`<div class="warn">Os fundos e o PGBL publicam cotas na CVM (D+1), mas essa base não pode ser lida direto pelo navegador. Para atualizar, toque no ativo e informe o saldo atual. O app separa sozinho o que foi rendimento do que foi aporte.</div>`};
+
+V.inv=()=>`<button class="btn" onclick="fMov()">+ Movimentação</button> <button class="btn2" onclick="fAsset()">+ Ativo</button> <button class="btn2" onclick="fCat()">+ Categoria</button>
+<h2>Ativos</h2><div class="card">${S.assets.map(a=>`<div class="row" onclick="det('${a.id}')"><div>${a.n}<div class="sm">${a.cat}</div></div><b>${R(bal(a))}</b></div>`).join('')}</div>
+<h2>Histórico</h2><div class="card">${S.movs.length?[...S.movs].sort((a,b)=>b.d.localeCompare(a.d)).map(m=>{const a=S.assets.find(x=>x.id==m.a);
+return`<div class="row"><div>${({ap:'Aporte',res:'Resgate',tr:'Transferência',rd:'Rendimento/ajuste'})[m.t]} · ${a?.n||'?'}<div class="sm">${m.d.split('-').reverse().join('/')} ${m.inst||''} ${m.obs||''}</div></div>
+<div style="text-align:right">${R(m.v)}<br><button class="btn2" onclick="fMov('${m.id}')">✎</button> <button class="btn2" onclick="delM('${m.id}')">🗑</button></div></div>`}).join(''):'<div class="sm">Sem movimentações.</div>'}</div>
+<h2>Backup</h2><div class="card"><button class="btn2" onclick="exp()">Exportar JSON</button> <label class="btn2">Importar<input type="file" accept=".json" hidden onchange="imp(this)"></label>
+<div class="warn">Os dados ficam salvos só neste iPhone (Safari/app). Exporte um backup com frequência, porque limpar os dados do Safari apaga tudo.</div></div>`;
+
+V.cal=()=>{const y=calY;return`<div class="row"><button class="btn2" onclick="calY--;go('cal')">‹</button><b>${y}</b><button class="btn2" onclick="calY++;go('cal')">›</button></div>
+<div class="months">${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m,i)=>{const k=y+'-'+String(i+1).padStart(2,'0');return`<div class="mo ${S.closes[k]?'has':''}" onclick="fClose('${k}')">${m}</div>`}).join('')}</div>
+<div class="card" style="margin-top:12px"><div class="row"><span class="lbl">Evolução</span><span>${[12,24,0].map(n=>`<button class="btn2" onclick="calN=${n};A.cal()">${n||'Tudo'}</button>`).join(' ')}</span></div><canvas id="c3"></canvas></div>`};
+let calY=+T.slice(0,4),calN=12;
+A.cal=()=>{let k=Object.keys(S.closes).sort();if(calN)k=k.slice(-calN);
+ mk('c3','line',k,[{label:'Total R$',data:k.map(x=>S.closes[x].tot),borderColor:'#d4a73a',tension:.3},{label:'Brasil R$',data:k.map(x=>S.closes[x].fim),borderColor:'#3ccf91',tension:.3}])};
+
+V.eua=()=>{const u=usdBal(),f=usdFlow(),gU=u-S.usd.ini-f,brNow=u*S.rate,brIf=u*S.usd.rIni;
+return`<div class="card"><div class="lbl">Saldo EUA</div><div class="val big">${U(u)}</div><div class="sm">${R(brNow)} · USD/BRL ${S.rate.toFixed(4)}</div>
+<div class="sm">${S.mkt.rs||''} ${S.mkt.re||''}</div></div>
+<div class="grid"><div class="card"><div class="lbl">Rentab. em US$</div><div class="val ${cls(gU)}">${U(gU)}</div><div class="sm">${P(gU/(S.usd.ini+Math.max(f,0))*100)} (sem aportes)</div></div>
+<div class="card"><div class="lbl">Efeito cambial</div><div class="val ${cls(brNow-brIf)}">${R(brNow-brIf)}</div><div class="sm">vs ${S.usd.rIni.toFixed(4)}</div></div></div>
+<button class="btn" onclick="fUsd()">Atualizar saldo US$</button> <button class="btn2" onclick="fUsdF()">Aporte/retirada US$</button> <button class="btn2" onclick="mkt()">↻ Dólar</button>
+<div class="card" style="margin-top:10px"><canvas id="c4"></canvas></div>`};
+A.eua=()=>{const h=[{d:D0,usd:S.usd.ini,rate:S.usd.rIni},...S.usd.h];
+ mk('c4','line',h.map(x=>x.d.slice(5)),[{label:'US$',data:h.map(x=>x.usd),borderColor:'#5b8def',yAxisID:'y'},{label:'R$',data:h.map(x=>x.usd*x.rate),borderColor:'#d4a73a',yAxisID:'y1'}],
+ {scales:{y:{position:'left'},y1:{position:'right',grid:{display:false}}}})};
+
+V.meta=()=>{const g=byG(),t=totBR();return`<div class="card"><div class="row lbl"><span>Categoria</span><span>Atual · Meta</span></div>
+${S.groups.map(k=>`<div class="row"><div>${k}<div class="sm">${R(g[k])} · ideal ${R(t*S.tg[k]/100)}</div></div><div style="display:flex;gap:6px;align-items:center">${P(g[k]/t*100)}
+<input style="width:64px;margin:0" type="number" value="${S.tg[k]}" onchange="S.tg['${k}']=+this.value;sv();go('meta')"></div></div>`).join('')}
+<div class="sm">Soma das metas: ${P(Object.values(S.tg).reduce((a,b)=>a+b,0))}</div></div>
+<div class="grid"><div class="card"><div class="lbl">Atual</div><canvas id="c5"></canvas></div><div class="card"><div class="lbl">Desejada</div><canvas id="c6"></canvas></div></div>
+<h2>Planejamento</h2><div class="card">
+<div class="lbl">Aporte mensal meta (R$)</div><input type="number" value="${S.meta}" onchange="S.meta=+this.value;sv();go('meta')">
+<div class="lbl">Consórcio (R$/mês)</div><input type="number" value="${S.cons}" onchange="S.cons=+this.value;sv()">
+<div class="lbl">Rentab. anual: conservador / moderado / otimista (%)</div>
+<div style="display:flex;gap:6px">${['c','m','o'].map(k=>`<input type="number" value="${S.sc[k]}" onchange="S.sc.${k}=+this.value;sv();go('meta')">`).join('')}</div>
+${[5,10,15,20].map(n=>`<div class="row"><b>${n} anos</b><span class="sm">${['c','m','o'].map(k=>R(fv(t,S.meta,S.sc[k],n))).join('<br>')}</span></div>`).join('')}
+<div class="warn">Estas são projeções nominais e não rentabilidade realizada. Cada linha mostra os cenários conservador, moderado e otimista.</div></div>`};
+const fv=(p,m,r,n)=>{const i=Math.pow(1+r/100,1/12)-1,k=n*12;return p*Math.pow(1+i,k)+m*((Math.pow(1+i,k)-1)/i)};
+A.meta=()=>{dn('c5',byG());dn('c6',S.tg)};
+
+V.ind=()=>{const gn=S.assets.reduce((s,a)=>s+gain(a),0),base=S.assets.reduce((s,a)=>s+a.ini+Math.max(flow(a),0),0),r=gn/base*100,ip=S.mkt.ipca12;
+return`<div class="grid"><div class="card"><div class="lbl">Rentab. acumulada BR</div><div class="val ${cls(r)}">${P(r)}</div></div>
+<div class="card"><div class="lbl">CDI 12m</div><div class="val">${S.mkt.cdi12?P(S.mkt.cdi12):'—'}</div></div>
+<div class="card"><div class="lbl">IPCA 12m</div><div class="val">${ip?P(ip):'—'}</div></div>
+<div class="card"><div class="lbl">Selic meta</div><div class="val">${S.mkt.selic?P(S.mkt.selic):'—'}</div></div>
+<div class="card"><div class="lbl">% do CDI</div><div class="val">${S.mkt.cdi12?P(r/S.mkt.cdi12*100):'—'}</div></div>
+<div class="card"><div class="lbl">Rentab. real (− IPCA)</div><div class="val">${ip?P(((1+r/100)/(1+ip/100)-1)*100):'—'}</div></div></div>
+<h2>Por investimento</h2><div class="card">${S.assets.map(a=>`<div class="row"><span>${a.n}</span><span class="${cls(gain(a))}">${P(ret(a))} · ${R(gain(a))}</span></div>`).join('')}</div>
+<div class="card"><div class="lbl">CDI × IPCA mensal (Banco Central)</div><canvas id="c7"></canvas></div>
+<button class="btn2" onclick="mkt()">↻ Atualizar dados do BCB</button>
+<div class="warn">A rentabilidade considera só os rendimentos registrados, sem contar os aportes. A comparação com o CDI é aproximada, porque o período dos seus dados pode não coincidir com os 12 meses do índice. ${S.mkt.be||''}</div>`};
+A.ind=()=>{const c=S.mkt.cdiM,i=S.mkt.ipcaM;if(c&&i)mk('c7','bar',c.map(x=>x.data.slice(3)),[{label:'CDI',data:c.map(x=>+x.valor),backgroundColor:'#3ccf91'},{label:'IPCA',data:i.map(x=>+x.valor),backgroundColor:'#ff8c61'}])};
+
+// ===== FORMULÁRIOS =====
+const om=h=>{$('sh').innerHTML=h;$('md').classList.add('on')},cm=()=>$('md').classList.remove('on');
+const opt=(arr,sel)=>arr.map(([v,l])=>`<option value="${v}" ${v==sel?'selected':''}>${l}</option>`).join('');
+function fMov(id){const m=S.movs.find(x=>x.id==id)||{d:T,t:'ap',a:S.assets[0].id,v:''},as=S.assets.map(a=>[a.id,a.n]);
+om(`<h2>${id?'Editar':'Nova'} movimentação</h2>
+<div class="lbl">Tipo</div><select id="ft">${opt([['ap','Aporte'],['res','Resgate'],['tr','Transferência'],['rd','Rendimento / ajuste de saldo']],m.t)}</select>
+<div class="lbl">Data</div><input id="fd" type="date" value="${m.d}">
+<div class="lbl">Investimento</div><select id="fa">${opt(as,m.a)}</select>
+<div class="lbl">Destino (transferência)</div><select id="fto">${opt(as,m.to)}</select>
+<div class="lbl">Valor R$ (para ajuste, use negativo se houve perda)</div><input id="fv" type="number" step="0.01" inputmode="decimal" value="${m.v}">
+<div class="lbl">Cotas / preço / taxa / instituição / obs.</div><input id="fo" value="${m.obs||''}" placeholder="ex.: 10 cotas a R$ 98,50 · IPCA+6,5% · XP">
+<button class="btn" onclick="saveM('${id||''}')">Salvar</button> <button class="btn2" onclick="cm()">Cancelar</button>`)}
+function saveM(id){const m={id:id||'m'+Date.now(),t:$('ft').value,d:$('fd').value,a:$('fa').value,to:$('fto').value,v:+$('fv').value,obs:$('fo').value};
+ if(!m.v)return alert('Informe o valor');S.movs=S.movs.filter(x=>x.id!=m.id);S.movs.push(m);sv();cm();go(tab)}
+function delM(id){if(confirm('Excluir registro?')){S.movs=S.movs.filter(x=>x.id!=id);sv();go(tab)}}
+function det(id){const a=S.assets.find(x=>x.id==id);om(`<h2>${a.n}</h2><div class="sm">${a.cat} · ${grp(a.cat)}</div>
+<div class="grid" style="margin:10px 0"><div class="card"><div class="lbl">Saldo</div><div class="val">${R(bal(a))}</div></div><div class="card"><div class="lbl">Rendimento</div><div class="val ${cls(gain(a))}">${R(gain(a))}</div></div></div>
+<canvas id="c8"></canvas>
+<div class="lbl">Informar saldo atual (o app calcula o rendimento)</div><input id="ns" type="number" step="0.01" inputmode="decimal" placeholder="${bal(a).toFixed(2)}">
+<button class="btn" onclick="upd('${id}')">Atualizar saldo</button> <button class="btn2" onclick="fAsset('${id}')">Editar dados</button>`);ln('c8',series([a]))}
+function upd(id){const a=S.assets.find(x=>x.id==id),n=+$('ns').value;if(!n)return;
+ S.movs.push({id:'m'+Date.now(),t:'rd',d:T,a:id,v:+(n-bal(a)).toFixed(2),obs:'Atualização de saldo'});sv();cm();go(tab)}
+function fAsset(id){const a=S.assets.find(x=>x.id==id)||{n:'',cat:S.cats[0][0],ini:0,inst:'',taxa:'',cotas:'',obs:''};
+om(`<h2>${id?'Editar':'Novo'} ativo</h2>${[['n','Nome'],['inst','Instituição'],['taxa','Taxa contratada'],['cotas','Cotas'],['obs','Observações / CNPJ']].map(([k,l])=>`<div class="lbl">${l}</div><input id="x_${k}" value="${a[k]||''}">`).join('')}
+<div class="lbl">Categoria</div><select id="x_cat">${opt(S.cats.map(c=>[c[0],c[0]]),a.cat)}</select>
+<div class="lbl">Saldo inicial (R$)</div><input id="x_ini" type="number" step="0.01" value="${a.ini}">
+<button class="btn" onclick="saveA('${id||''}')">Salvar</button> ${id?`<button class="btn2" onclick="delA('${id}')">Excluir ativo</button>`:''}`)}
+function saveA(id){let a=S.assets.find(x=>x.id==id);if(!a){a={id:'a'+Date.now()};S.assets.push(a)}
+ ['n','inst','taxa','cotas','obs','cat'].forEach(k=>a[k]=$('x_'+k).value);a.ini=+$('x_ini').value||0;sv();cm();go(tab)}
+function delA(id){if(confirm('Excluir ativo e movimentações?')){S.assets=S.assets.filter(x=>x.id!=id);S.movs=S.movs.filter(m=>m.a!=id&&m.to!=id);sv();cm();go(tab)}}
+function fCat(){om(`<h2>Nova categoria</h2><div class="lbl">Nome</div><input id="cn"><div class="lbl">Grupo de alocação</div><select id="cg">${opt(S.groups.map(g=>[g,g]),'Outros')}</select>
+<button class="btn" onclick="S.cats.push([$('cn').value,$('cg').value]);sv();cm();go(tab)">Salvar</button>`)}
+function fClose(k){const br=totBR(),c=S.closes[k]||{ini:'',ap:'',res:'',rend:'',fim:br.toFixed(2),usd:usdBal(),rate:S.rate};
+om(`<h2>Fechamento ${k.split('-').reverse().join('/')}</h2>${[['ini','Patrimônio inicial R$'],['ap','Aportes R$'],['res','Resgates R$'],['rend','Rendimentos R$'],['fim','Patrimônio final BR R$'],['usd','Patrimônio EUA US$'],['rate','Cotação USD/BRL']].map(([f,l])=>`<div class="lbl">${l}</div><input id="k_${f}" type="number" step="0.0001" value="${c[f]}">`).join('')}
+<div class="sm">O total em R$ é calculado como final + EUA × cotação.</div><br>
+<button class="btn" onclick="saveC('${k}')">Salvar</button> ${S.closes[k]?`<button class="btn2" onclick="delete S.closes['${k}'];sv();cm();go('cal')">Excluir</button>`:''}`)}
+function saveC(k){const c={};['ini','ap','res','rend','fim','usd','rate'].forEach(f=>c[f]=+$('k_'+f).value||0);c.tot=c.fim+c.usd*c.rate;S.closes[k]=c;sv();cm();go('cal')}
+function fUsd(){om(`<h2>Saldo EUA</h2><div class="lbl">Saldo total US$</div><input id="us" type="number" step="0.01" value="${usdBal()}">
+<div class="lbl">Cotação USD/BRL</div><input id="ur" type="number" step="0.0001" value="${S.rate}">
+<button class="btn" onclick="S.rate=+$('ur').value;S.usd.h.push({d:T,usd:+$('us').value,rate:S.rate});sv();cm();go('eua')">Salvar</button>`)}
+function fUsdF(){om(`<h2>Aporte / retirada US$</h2><div class="lbl">Valor (negativo = retirada)</div><input id="uf" type="number" step="0.01">
+<div class="sm">Depois atualize o saldo total. O aporte não entra como rentabilidade.</div><br>
+<button class="btn" onclick="S.usd.f.push({d:T,v:+$('uf').value});sv();cm();go('eua')">Salvar</button>`)}
+function exp(){const b=new Blob([JSON.stringify(S)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ipe-backup-'+T+'.json';a.click()}
+function imp(i){const r=new FileReader();r.onload=()=>{try{S=JSON.parse(r.result);sv();go('dash');alert('Backup restaurado')}catch(e){alert('Arquivo inválido')}};r.readAsText(i.files[0])}
+function tg(){S.theme=S.theme=='dark'?'light':'dark';sv();document.body.classList.toggle('light',S.theme=='light');go(tab)}
+
+document.body.classList.toggle('light',S.theme=='light');go('dash');mkt();
+</script>
+</body>
+</html>
